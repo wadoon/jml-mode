@@ -3,7 +3,7 @@
 ;; Copyright (C) 2018 Alexander Weigl
 
 ;; Author: Alexander Weigl
-;; Version: 0.1
+;; Version: 0.2 alpha
 ;; Created: 2018-09-16
 ;; URL: https://github.com/wadoon/jml-mode
 
@@ -25,8 +25,8 @@
 
 ;; This is a minor mode for Emacs to support JML comments in Java files. It
 ;; builds ontop of the `java-mode', a derived from the `cc-mode'. In particular,
-;; it adds the `jml-font-lock-keywords' that enables you to enable JML comments
-;; via the `c-doc-comment-style' variable.
+;; it adds the `jml-font-lock-keywords' that enables you to enable JML comments via
+;; the `c-doc-comment-style' variable.
 
 ;; For convinience reason, this file provide also the minor mode `jml-mode'.
 
@@ -38,7 +38,7 @@
 ;;; Todo and Known bugs
 ;;
 ;; * [ ] Running/Open File in KeY or OpenJML
-;; * [ ] Enabling and disabling not working correctly
+;; * [ ] Enabling and disabling not working correctly.
 ;; * [ ] Prettifying symbols not working
 
 ;;; Code:
@@ -133,12 +133,13 @@
       (let* ((-java-keywords-re (regexp-opt jml-java-keywords 'words))
              (-keywords-1-re (regexp-opt (sort jml-keywords-1 #'string<) 'words))
              (-types-re (regexp-opt (sort jml-keywords-types #'string<) 'words))
-             ;;(-keywords-2-re (rx-to-string `(: bow "\\" (| ,@jml-keywords-2) eow))))
-             (-keywords-2-re (concat (rx ?\\) (regexp-opt (sort jml-keywords-2 #'string<)))))
-        `((,-keywords-1-re (0 font-lock-keyword-face prepend))
+             (-danger-re (regexp-opt (sort jml-keywords-dangerous #'string<) 'words))
+             (-keywords-2-re (concat (rx ?\\) (regexp-opt (sort jml-keywords-2 #'string<)) (rx eow))))
+        `((,-keywords-1-re (0 jml-jml-keyword-face prepend))
           (,-keywords-2-re (0 font-lock-keyword-face prepend))
           (,-types-re (0 font-lock-type-face 'prepend))
-          (,-java-keywords-re (0 font-lock-keyword-face prepend)))))
+          (,-java-keywords-re (0 jml-jml-keyword-face prepend))
+          (,-danger-re (0 jml-jml-dangerous-face prepend)))))
 
 (defun jml-font-lock-keywords ()
   "Called by cc-mode for jml-comments."
@@ -174,9 +175,33 @@
   (prettify-symbols-mode 1))
 
 
+;;;;;
+(defcustom jml-command-execute-key "java -jar key.jar '%s'"
+  "Command to execute/open a Java file in the KeY theorem prover.
+
+Use %s for the Java filename."
+  :type 'string
+  :group 'jml)
+
+
+(defun jml-open-file-in-key ()
+  "Opens the current file in the KeY theorem prover."
+  (interactive)
+  (let ((cmd) (format jml-command-execute-key (buffer-file-name)))
+    (shell-command cmd)))
+
+
+(setq jml-mode-map (let ((map (make-sparse-keymap)))
+                  (bind-key (kbd "C-c C-c C-k") #'jml-open-file-in-key)
+                  map))
+
 (define-minor-mode jml-mode
-  "A minor mode for activating the jml doc style in c-mode"
+  "A minor mode for activating the jml doc style in c-mode.
+
+See `jml-mode-map'.
+"
   :ligther " JML"
+  :keymap jml-mode-map
 
   (if jml-mode
       (progn
