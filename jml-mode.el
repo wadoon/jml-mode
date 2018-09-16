@@ -1,42 +1,85 @@
-;; jml-mode.el -- Minor mode for Java Modeling Language.
+;; jml-mode.el -- Minor mode for Java Modeling Language. -*- lexical-binding:t -*-
+
+;; Copyright (C) 2018 Alexander Weigl
+
+;; Author: Alexander Weigl
+;; Version: 0.1
+;; Created: 2018-09-16
+;; URL: https://github.com/wadoon/jml-mode
+
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 
 ;;; Commentary:
+
+;; This is a minor mode for Emacs to support JML comments in Java files. It
+;; builds ontop of the `java-mode', a derived from the `cc-mode'. In particular,
+;; it adds the `jml-font-lock-keywords' that enables you to enable JML comments
+;; via the `c-doc-comment-style' variable.
+
+;; For convinience reason, this file provide also the minor mode `jml-mode'.
+
+
+;; Features
+;; * Syntax Highlightning
+;; * Face group: *jml*
+
+;;; Todo and Known bugs
+;;
+;; * [ ] Running/Open File in KeY or OpenJML
+;; * [ ] Enabling and disabling not working correctly
+;; * [ ] Prettifying symbols not working
 
 ;;; Code:
 
 (defface jml-basic-face
-  '((t :background "darkseagreen2")
-       :inherit font-lock-comment-face)
-  ""
+  '((t :inherit font-lock-comment-face))
+  "This is the base of all jml-faces."
   :group 'jml)
 (defvar jml-basic-face 'jml-basic-face)
 
-
 (defface jml-java-keyword-face
-  '((t :background "red"
-       :inherit (jml-basic-face font-lock-keyword-face)))
-  ""
+  '((t :inherit (jml-basic-face font-lock-keyword-face)))
+  "Face for Java keywords in JML comments."
   :group 'jml)
 (defvar jml-java-keyword-face  'jml-java-keyword-face)
 
 
 (defface jml-jml-keyword-face
-  '((t :background "yellow"
-       :inherit (jml-basic-face font-lock-keyword-face)))
-  ""
+  '((t :inherit (jml-basic-face font-lock-keyword-face)))
+  "Face for JML keywords in JML comments."
   :group 'jml)
 (defvar jml-jml-keyword-face  'jml-jml-keyword-face)
 
 
-(defface jml-key-keyword-face
-  '((t :background "purple"
-       :inherit (jml-basic-face font-lock-keyword-face)))
-  ""
+(defface jml-jml-dangerous-face
+  '((t :inherit (jml-basic-face font-lock-keyword-face)))
+  "Face for JML keywords, that can be considered harmful,e.g., ensures_free."
   :group 'jml)
+(defvar jml-jml-dangerous-face  'jml-jml-dangerous-face)
+
+
+;; (defface jml-key-keyword-face
+;;   '((t :background "purple"
+;;        :inherit (jml-basic-face font-lock-keyword-face)))
+;;   ""
+;;   :group 'jml)
 
 
 (defcustom jml-start-multiline (rx (| "/*@" "//@"))
-  "" :group 'jml)
+  "Regular expression matching the start of JML comments."
+  :group 'jml)
 
 ;; (defcustom jml-mode-jml-end-multiline (rx "*/") "" :group 'jml)
 
@@ -44,17 +87,15 @@
   '("false" "instanceof"  "new"
     "public" "private" "protected"
     "null"  "super" "this" "true" )
-  "List of keywords inside JML contracts, that belongs to Java"
-  :type '(list string)
+  "List of keywords inside JML contracts, that belongs to Java."
+  :type '(repeat string)
   :group 'jml)
 
 (defcustom jml-keywords-types
   (list "boolean" "byte"  "int" "long" "short" "void")
-  "."
-  :type '(list string)
+  "Keywords specifying types in Java."
+  :type '(repeat string)
   :group 'jml)
-
-
 
 (defcustom jml-keywords-1
   (list "ensures" "requires" "accessible" "assignable" "breaks" "continues"
@@ -63,26 +104,31 @@
 	"signals" "signals_only" "maintaining" "decreasing" "assignable"
          "diverges" "normal_behavior" "exceptional_behavior" "pure" "invariant")
   "JML Keywords used in contracts on top level, but are normal identifier on expression level."
-  :type '(list string) :group 'jml)
+  :type '(repeat string) :group 'jml)
 
 (defcustom jml-keywords-2
-  (list
-   "bigint" "duration" "elemtype" "empty" "everything" "exception" "exists"
-   "forall" "fresh" "index" "into" "invariant_for" "is_initialized" "lblneg"
-   "lblpos" "locset" "max" "measured_by" "min"
-   "nonnullelements" "nothing" "not_assigned" "not_modified"
-   "not_specified" "num_of" "old" "permission" "pre"
-   "product" "reach" "real" "result" "same" "space"
-   "strictly_nothing" "invariant_for"
-   "subset" "such_that" "sum" "TYPE" "typeof" "type"
-   "values" "working_space")
+  (list "bigint" "duration" "elemtype" "empty" "everything" "exception" "exists"
+        "forall" "fresh" "index" "into" "invariant_for" "is_initialized" "lblneg"
+        "lblpos" "locset" "max" "measured_by" "min"
+        "nonnullelements" "nothing" "not_assigned" "not_modified"
+        "not_specified" "num_of" "old" "permission" "pre"
+        "product" "reach" "real" "result" "same" "space"
+        "strictly_nothing" "invariant_for"
+        "subset" "such_that" "sum" "TYPE" "typeof" "type"
+        "values" "working_space")
   "JML Keywords used in expressions. Prefixed with an \\."
-  :type '(list string)
+  :type '(repeat string)
   :group 'jml)
 
-(defvar jml--font-lock-doc-comments nil
-  "Keywords for font-lock")
+(defcustom jml-keywords-dangerous
+  (list "ensures_free" "requires_free")
+  "JML Keywords that are considered harmful. Highlighted with `jml-jml-dangerous-face'."
+  :type '(repeat string)
+  :group 'jml)
 
+
+(defvar jml--font-lock-doc-comments nil
+  "Internal variable: containing the keywords for font-lock.")
 (setq jml--font-lock-doc-comments
       (let* ((-java-keywords-re (regexp-opt jml-java-keywords 'words))
              (-keywords-1-re (regexp-opt (sort jml-keywords-1 #'string<) 'words))
@@ -95,7 +141,7 @@
           (,-java-keywords-re (0 font-lock-keyword-face prepend)))))
 
 (defun jml-font-lock-keywords ()
-  "Get calls by cc-mode for jml-comments."
+  "Called by cc-mode for jml-comments."
   `((,(lambda (limit)
 	(c-font-lock-doc-comments jml-start-multiline limit
 	  jml--font-lock-doc-comments)))))
@@ -118,12 +164,12 @@
     ("requires" . ?🔑)
     ("!" . ?¬))
   "Prettifying symbols for JML."
-  :type '(const string . string)
+  :type '(alist :key-type string :value-type (choice integer character string))
   :group 'jml)
 
 (defun jml-pretty-symbols ()
-  "make some word or string show as pretty Unicode symbols"
-                                        ;(setq prettify-symbols-alist jml-prettify-symbols-alist)
+  "Make some word or string show as pretty Unicode symbols."
+  ;;(setq prettify-symbols-alist jml-prettify-symbols-alist)
   (push `("ensures" . ?🔒) prettify-symbols-alist)
   (prettify-symbols-mode 1))
 
@@ -135,16 +181,18 @@
   (if jml-mode
       (progn
         (add-to-list 'c-doc-comment-style '(java-mode . jml))
-        (c-setup-doc-comment-style)
-        (java-mode)
-        (jml-pretty-symbols))
+        (c-setup-doc-comment-style))
+        ;;(java-mode)
+        ;;(jml-pretty-symbols))
     (progn
       (setq c-doc-comment-style
             (remove '(java-mode . jml) c-doc-comment-style))
-      (prettify-symbols-mode -1))))
+      ;;(prettify-symbols-mode -1)
+      )))
 
 ;; Local Variables:
 ;; nameless-current-name: "jml"
+;; ispell-dictionary: "en_GB"
 ;; End:
 
 (provide 'jml-mode)
