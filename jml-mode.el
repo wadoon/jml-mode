@@ -1,6 +1,6 @@
 ;;; jml-mode.el --- Major Mode for editing Java Modelling Language
 
-;; Copyright (C) 2019 Alexander Weigl <weigl@kit.edu>
+;; Copyright (C) 2019, 2020 Alexander Weigl <weigl@kit.edu>
 ;; URL: https://github.com/wadoon/key-mode
 ;; Version: 0.1
 ;; Keywords: languages
@@ -47,9 +47,8 @@
 
 ;;; Code:
 (require 'polymode)
-(require 'jml-contract-mode)
+(require 'cc-mode) ;; load java-mode needed for syntax table
 (require 'rx)
-;(require 'java-mode)
 
 
 (defface jml-basic-face
@@ -60,7 +59,7 @@
 (defvar jml-basic-face 'jml-basic-face)
 
 (defface jml-comment-delimiter-face
-  '((t :background "gray"
+  '((t ;;:background "gray"
        :inherit (jml-basic-face font-lock-delimiter-face)))
   ""
   :group 'jml-faces)
@@ -194,14 +193,14 @@
 
 (define-innermode poly-java-jml-multiline-innermode
   :mode 'jml-contract-mode
-  :head-matcher (rx "/*@")
+  :head-matcher (rx "/*"  (* (or ?\+ ?\-) (*? (not space)))  "@")
   :tail-matcher (rx "*/")
   :head-mode 'host
   :tail-mode 'host)
 
 (define-innermode poly-java-jml-singleline-innermode
   :mode 'jml-contract-mode
-  :head-matcher (rx "//@")
+  :head-matcher (rx "//" (* (or ?\+ ?\-) (*? (not space)))  "@")
   :tail-matcher (rx eol)
   :head-mode 'host
   :tail-mode 'host)
@@ -212,14 +211,6 @@
   :innermodes '(poly-java-jml-multiline-innermode
                 poly-java-jml-singleline-innermode))
 
-
-
 (provide 'jml-mode)
 
-;;; jml-mode.el ends here
-
-
-
-
-(provide 'jml-mode)
 ;;; jml-mode.el ends here
