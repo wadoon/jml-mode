@@ -1,4 +1,4 @@
-;; jml-mode.el -- Minor mode for Java Modeling Language. -*- lexical-binding:t -*-
+;; jml-mode.el -- Minor mode for Java Modeling Language.
 
 ;; Copyright (C) 2018 Alexander Weigl
 
@@ -143,11 +143,13 @@
           (,-java-keywords-re (0 jml-jml-keyword-face prepend))
           (,-danger-re (0 jml-jml-dangerous-face prepend)))))
 
-(defun jml-font-lock-keywords ()
-  "Called by cc-mode for jml-comments."
-  `((,(lambda (limit)
-	(c-font-lock-doc-comments jml-start-multiline limit
-	  jml--font-lock-doc-comments)))))
+
+(defconst jml-font-lock-keywords
+  (list (list
+         (lambda (limit)
+	   (c-font-lock-doc-comments jml-start-multiline limit
+	     jml--font-lock-doc-comments))))
+    "Called by cc-mode for jml-comments.")
 
 
 (defcustom jml-prettify-symbols-alist
@@ -197,6 +199,7 @@ Use %s for the Java filename."
                   (bind-key (kbd "C-c C-c C-k") #'jml-open-file-in-key)
                   map))
 
+
 (define-minor-mode jml-mode
   "A minor mode for activating the jml doc style in c-mode.
 
@@ -207,15 +210,21 @@ See `jml-mode-map'.
 
   (if jml-mode
       (progn
-        (add-to-list 'c-doc-comment-style '(java-mode . jml))
-        (c-setup-doc-comment-style))
-        ;;(java-mode)
+        (font-lock-add-keywords
+         nil
+         jml-font-lock-keywords)
+        (font-lock-ensure)
+        (font-lock-fontify-buffer))
+        ;(add-to-list 'c-doc-comment-style '(java-mode . jml))
+        ;(c-setup-doc-comment-style)
+        ;(java-mode)
         ;;(jml-pretty-symbols))
     (progn
-      (setq c-doc-comment-style
-            (remove '(java-mode . jml) c-doc-comment-style))
+      ;(setq c-doc-comment-style
+      ;      (remove '(java-mode . jml) c-doc-comment-style))
       ;;(prettify-symbols-mode -1)
       )))
+
 
 ;; Local Variables:
 ;; nameless-current-name: "jml"
